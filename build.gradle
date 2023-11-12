@@ -16,10 +16,10 @@ repositories {
 }
 
 dependencies {
-    implementation platform('run.halo.tools.platform:plugin:2.6.0-SNAPSHOT')
-    compileOnly 'run.halo.app:api'
-
-    testImplementation 'run.halo.app:api'
+    implementation platform('run.halo.tools.platform:plugin:2.10.0-SNAPSHOT')
+    implementation 'cn.hutool:hutool-all:5.8.16'
+    compileOnly 'run.halo.app:api:2.10.0-SNAPSHOT'
+    testImplementation 'run.halo.app:api:2.10.0-SNAPSHOT'/*不写版本号拉取不到最新版本*/
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
@@ -38,4 +38,7 @@ task buildFrontend(type: PnpmTask) {
 build {
     // build frontend before build
     tasks.getByName('compileJava').dependsOn('buildFrontend')
+}
+tasks.withType(JavaCompile){
+    options.encoding="UTF-8"
 }
