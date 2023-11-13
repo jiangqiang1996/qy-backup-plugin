@@ -5,26 +5,22 @@ import cn.hutool.core.date.TemporalAccessorUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.json.JSONUtil;
 import java.io.IOException;
-import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DefaultDataBuffer;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
-import run.halo.app.core.extension.attachment.Attachment;
 import run.halo.app.core.extension.service.AttachmentService;
 import run.halo.app.extension.ExtensionClient;
 import run.halo.app.extension.Metadata;
@@ -57,18 +53,11 @@ public class StarterPlugin extends BasePlugin {
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
     private final AttachmentService attachmentService;
     private final BackupRootGetter backupRoot;
-    private final HttpClient httpClient = HttpClient.create()
-        .followRedirect(true);
-    private final WebClient webClient = WebClient.builder()
-        .clientConnector(new ReactorClientHttpConnector(httpClient))
-        .build();
 
-    public Flux<DataBuffer> fetch(URI uri) {
-        return webClient.get()
-            .uri(uri)
-            .accept(MediaType.APPLICATION_OCTET_STREAM)
-            .retrieve()
-            .bodyToFlux(DataBuffer.class);
+    public Flux<DataBuffer> toDataBuffer(Resource resource) throws IOException {
+        DefaultDataBuffer wrap =
+            DefaultDataBufferFactory.sharedInstance.wrap(resource.getContentAsByteArray());
+        return Flux.fromIterable(List.of(wrap));
     }
 
     public StarterPlugin(PluginContext pluginContext,
@@ -86,12 +75,12 @@ public class StarterPlugin extends BasePlugin {
 
     @Override
     public void start() {
-        System.out.println("插件启动成功start！");
-        this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
+        log.debug("插件启动成功start！");
+        this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(2);
         //注册自定义模型
         schemeManager.register(WxConfig.class);
         ThreadUtil.schedule(scheduledThreadPoolExecutor, () -> {
-            System.out.println("定时任务");
+            log.debug("开始备份");
             Backup backup = new Backup();
             backup.setApiVersion("migration.halo.run/v1alpha1");
             backup.setKind("Backup");
@@ -104,49 +93,44 @@ public class StarterPlugin extends BasePlugin {
                 LocalDateTimeUtil.offset(LocalDateTime.now(), 1, ChronoUnit.WEEKS)));
             backup.setSpec(spec);
             extensionClient.create(backup);
-            System.out.println("备份成功\n:" + JSONUtil.toJsonPrettyStr(backup));
-            ThreadUtil.sleep(10000);
-            reactiveExtensionClient.get(Backup.class, backup.getMetadata().getName())
-                .flatMap(this::download)
-                .flatMap(resource -> {
-                    try {
-                        URI uri = resource.getURI();
-                        System.out.println("上传文件：uri：" + uri.getPath());
-                        return attachmentService.upload("default-policy", null,
-                            Objects.requireNonNull(resource.getFilename()), fetch(uri),
-                            MediaType.APPLICATION_OCTET_STREAM);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+            while (true) {
+                Optional<Backup> fetch =
+                    extensionClient.fetch(Backup.class, backup.getMetadata().getName());
+                if (fetch.isPresent()) {//存在
+                    var status = fetch.get().getStatus();
+                    if (Backup.Phase.PENDING.equals(status.getPhase())
+                        || Backup.Phase.RUNNING.equals(status.getPhase())) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else if (Backup.Phase.SUCCEEDED.equals(status.getPhase())
+                        && status.getFilename() != null) {
+                        var backupFile = backupRoot.get().resolve(status.getFilename());
+                        var fileSystemResource = new FileSystemResource(backupFile);
+                        if (!fileSystemResource.exists()) {
+                            throw new NotFoundException("备份文件找不到");
+                        }
+                        System.out.println("备份成功，开始上传");
+                        try {
+                            Flux<DataBuffer> dataBuffer = toDataBuffer(fileSystemResource);
+                            attachmentService.upload("default-policy", null,
+                                Objects.requireNonNull(fileSystemResource.getFilename()),
+                                dataBuffer,
+                                MediaType.APPLICATION_OCTET_STREAM).subscribe(
+                                attachment -> log.debug("备份完成:{}",
+                                    JSONUtil.toJsonStr(attachment)));
+                            break;
+                        } catch (IOException e) {
+                            throw new RuntimeException("备份失败");
+                        }
+                    } else if (!Backup.Phase.FAILED.equals(status.getPhase())) {
+                        break;
                     }
-                }).subscribe(new Consumer<Attachment>() {
-                    @Override
-                    public void accept(Attachment attachment) {
-                        System.out.println(JSONUtil.toJsonPrettyStr(attachment));
-                    }
-                });
+                }
+            }
         }, 0, 10, TimeUnit.SECONDS, true);
-    }
-
-    public Mono<Resource> download(Backup backup) {
-        return Mono.create(sink -> {
-            System.out.println(backup);
-            var status = backup.getStatus();
-            if (!Backup.Phase.SUCCEEDED.equals(status.getPhase()) || status.getFilename() == null) {
-                sink.error(new ServerWebInputException("Current backup is not downloadable."));
-                return;
-            }
-            var backupFile = backupRoot.get().resolve(status.getFilename());
-            var resource = new FileSystemResource(backupFile);
-            if (!resource.exists()) {
-                sink.error(
-                    new NotFoundException("problemDetail.migration.backup.notFound",
-                        new Object[] {},
-                        "Backup file doesn't exist or deleted."));
-                return;
-            }
-            System.out.println("----------------------------------------");
-            sink.success(resource);
-        });
     }
 
     @Override
