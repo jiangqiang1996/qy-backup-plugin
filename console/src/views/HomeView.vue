@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import confetti from "canvas-confetti";
-import { onMounted } from "vue";
+import { onMounted,ref } from "vue";
 import RiShareCircleLine from "~icons/ri/share-circle-line";
 import RiCodeBoxLine from "~icons/ri/code-box-line";
 import RiBookReadLine from "~icons/ri/book-read-line";
@@ -14,11 +14,20 @@ onMounted(() => {
     origin: { y: 0.6, x: 0.58 },
   });
 });
+const postName = ref("");
 </script>
 
 <template>
   <section id="plugin-starter">
     <div class="wrapper">
+      <FormKit
+        v-model="postName"
+        placeholder="请选择文章"
+        label="文章"
+        type="postSelect"
+        validation="required"
+      />
+      
       <span class="title"> 你已经成功运行起了插件！ </span>
       <span class="message">你可以点击下方文档继续下一步</span>
       <div class="docs">
