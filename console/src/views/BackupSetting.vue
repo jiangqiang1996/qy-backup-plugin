@@ -69,7 +69,7 @@ const mutate = async (data: any) => {
     saving.value = true;
     try {
         const response = await service.saveOrUpdate(Constants.BackupSettingGvk, "backupSetting", {...data})
-        const pluginName = "PluginStarter"
+        const pluginName = "QyBackupPlugin"
         await service.axiosInstance.put(`/apis/api.console.halo.run/v1alpha1/plugins/${pluginName}/reload`);
     } finally {
         saving.value = false;

@@ -4,5 +4,5 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-rootProject.name = 'plugin-starter'
+rootProject.name = 'qy-backup-plugin'
 

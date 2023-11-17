@@ -2,7 +2,7 @@ apiVersion: www.jiangqiang.top/v1
 kind: BackupSetting
 metadata:
   # The name defines how the plugin is invoked,A unique name
-  name: PluginStarter
+  name: QyBackupPlugin
 spec:
   enabled: true
   requires: ">=2.10.0"
@@ -17,4 +17,4 @@ spec:
   description: "定时自动备份"
   license:
     - name: "GPL-3.0"
-      url: "https://github.com/halo-dev/plugin-starter/blob/main/LICENSE"
+      url: "https://gitee.com/jiangqiang1996/backup-plugin/blob/main/LICENSE"
