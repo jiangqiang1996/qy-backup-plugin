@@ -18,7 +18,7 @@ import run.halo.app.extension.GVK;
     version = "v1",//版本号，建议字母开头
     kind = "BackupSetting",//给这一系列增删改查接口分组，建议使用当前实体类的类名
     singular = "BackupSetting",//当前实体的单数形式
-    plural = "BackupSettings")//当前实体的复数表现形式
+    plural = "BackupSettings")//当前实体的复数表现形式，通用接口路径的一部分
 @Schema(description = "备份同步")
 public class BackupSetting extends AbstractExtension {
 

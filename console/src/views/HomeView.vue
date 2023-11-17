@@ -1,178 +1,116 @@
-<script setup lang="ts">
-import confetti from "canvas-confetti";
-import { onMounted,ref } from "vue";
-import RiShareCircleLine from "~icons/ri/share-circle-line";
-import RiCodeBoxLine from "~icons/ri/code-box-line";
-import RiBookReadLine from "~icons/ri/book-read-line";
-import RiComputerLine from "~icons/ri/computer-line";
-import RiArrowRightSLine from "~icons/ri/arrow-right-s-line";
+<script lang="ts" setup>
+// core libs
+import {ref} from "vue";
+import {useI18n} from "vue-i18n";
+// components
+import {VButton} from "@halo-dev/components";
+import service from "@/request/request";
 
-onMounted(() => {
-  confetti({
-    particleCount: 100,
-    spread: 70,
-    origin: { y: 0.6, x: 0.58 },
-  });
-});
-const postName = ref("");
+const {t} = useI18n();
+// const props = withDefaults(
+//   defineProps<{
+//     showOperations: boolean;
+//   }>(),
+//   {
+//     showOperations: true,
+//   }
+// );
+const saving = ref(false);
+const data = ref()
+const formSchema = ref(
+  [
+    {
+      $formkit: 'number',
+      name: 'period',
+      label: '执行周期',
+      help: '定时任务的执行周期',
+      validation: 'required|number|min:1',
+      value: 1,
+    },
+    {
+      $cmp: 'FormKit',
+      props: {
+        type: 'radio',
+        name: 'timeUnit',
+        label: '执行周期时间单位',
+        options: [
+          {value: "MINUTES", label: '分'},
+          {value: "HOURS", label: '时'},
+          {value: "DAYS", label: '天'},
+        ],
+        validation: 'required|matches:MINUTES,HOURS,DAYS',
+        value: "DAYS",
+        validationVisibility: 'dirty'
+      }
+    },
+    {
+      $formkit: 'number',
+      name: 'effectiveDuration',
+      label: '有效时长',
+      help: '备份文件的有效时长',
+      value: 1,
+      validation: 'required|number|min:1',
+    },
+    {
+      $cmp: 'FormKit',
+      props: {
+        type: 'radio',
+        name: 'effectiveDurationUnit',
+        label: '有效时长时间单位',
+        options: [
+          {value: "DAYS", label: '天'},
+          {value: "WEEKS", label: '周'},
+          {value: "MONTHS", label: '月'},
+          {value: "YEARS", label: '年'},
+        ],
+        validation: 'required|matches:DAYS,WEEKS,MONTHS,YEARS',
+        value: "WEEKS",
+        validationVisibility: 'dirty'
+      }
+    }
+  ]
+)
+const mutate = (data: any) => {
+  service.get({
+    group: "www.jiangqiang.top",
+    version: "v1",
+    kind: "BackupSetting",
+    singular: "BackupSetting",
+    plural: "BackupSettings",
+  }).then((a: any) => {
+    console.log(a)
+  })
+
+}
 </script>
-
 <template>
-  <section id="plugin-starter">
-    <div class="wrapper">
-      <FormKit
-        v-model="postName"
-        placeholder="请选择文章"
-        label="文章"
-        type="postSelect"
-        validation="required"
-      />
-      
-      <span class="title"> 你已经成功运行起了插件！ </span>
-      <span class="message">你可以点击下方文档继续下一步</span>
-      <div class="docs">
-        <a
-          href="https://docs.halo.run/developer-guide/plugin/publish"
-          class="docs__box"
-          target="_blank"
+  <Transition mode="out-in" name="fade">
+    <div class="bg-white p-4">
+      <div>
+        <FormKit
+          id="backup-setting"
+          v-model="data"
+          name="backup-setting"
+          :actions="false"
+          :preserve="true"
+          type="form"
+          @submit="mutate"
+          submit-label="Login"
         >
-          <h2 class="docs__box-title"><RiShareCircleLine />发布一个插件</h2>
-          <span class="docs__box-message">
-            了解如何与我们的社区分享您的扩展。
-          </span>
-          <span class="docs__box-arrow">
-            <RiArrowRightSLine />
-          </span>
-        </a>
-        <a
-          href="https://docs.halo.run/developer-guide/plugin/structure"
-          class="docs__box"
-          target="_blank"
-        >
-          <h2 class="docs__box-title"><RiComputerLine />基础概览</h2>
-          <span class="docs__box-message">
-            了解插件的项目结构、生命周期、资源配置等。
-          </span>
-          <span class="docs__box-arrow">
-            <RiArrowRightSLine />
-          </span>
-        </a>
-        <a
-          href="https://docs.halo.run/developer-guide/plugin/examples/todolist"
-          class="docs__box group"
-          target="_blank"
-        >
-          <h2 class="docs__box-title"><RiBookReadLine />示例插件</h2>
-          <span class="docs__box-message">帮助你从 0 到 1 完成一个插件。</span>
-          <span class="docs__box-arrow">
-            <RiArrowRightSLine />
-          </span>
-        </a>
-        <a
-          href="https://docs.halo.run/developer-guide/plugin/api-reference/extension"
-          class="docs__box"
-          target="_blank"
-        >
-          <h2 class="docs__box-title"><RiCodeBoxLine />API 参考</h2>
-          <span class="docs__box-message">插件中的 API 列表。</span>
-          <span class="docs__box-arrow">
-            <RiArrowRightSLine />
-          </span>
-        </a>
+          <FormKitSchema :schema="formSchema"/>
+        </FormKit>
+      </div>
+      <div v-permission="['system:migrations:manage']" class="pt-5">
+        <div class="flex justify-start">
+          <VButton
+            :loading="saving"
+            type="secondary"
+            @click="$formkit.submit('backup-setting')"
+          >
+            {{ $t("core.common.buttons.save") }}
+          </VButton>
+        </div>
       </div>
     </div>
-  </section>
+  </Transition>
 </template>
-
-<style lang="scss" scoped>
-#plugin-starter {
-  height: 100vh;
-  background-color: #f8fafc;
-}
-
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  gap: 1.5rem;
-
-  .title {
-    font-weight: 700;
-    font-size: 1.25rem;
-    line-height: 1.75rem;
-  }
-
-  .message {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: #4b5563;
-  }
-
-  .docs {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 1rem;
-    max-width: 48rem;
-
-    .docs__box {
-      background-color: #fff;
-      border-radius: 0.375rem;
-      padding: 0.75rem;
-      transition-property: all;
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      transition-duration: 300ms;
-      cursor: pointer;
-      filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))
-        drop-shadow(0 1px 1px rgb(0 0 0 / 0.06));
-
-      &:hover {
-        box-shadow: 0 0 0 0px #fff, 0 0 0 1px rgb(59 130 246 / 0.5), 0 0 #0000;
-      }
-
-      .docs__box-title {
-        display: flex;
-        flex-direction: row;
-        font-size: 1.125rem;
-        line-height: 1.75rem;
-        font-weight: 700;
-        margin-bottom: 2rem;
-        gap: 0.5rem;
-        align-items: center;
-      }
-
-      .docs__box-message {
-        font-size: 0.875rem;
-        line-height: 1.25rem;
-        color: #4b5563;
-      }
-
-      .docs__box-arrow {
-        pointer-events: none;
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        transition-property: all;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 150ms;
-        color: #d1d5db;
-      }
-
-      &:hover {
-        .docs__box-arrow {
-          color: #9ca3af;
-          transform: translate(00.375rem, 0) rotate(0) skewX(0) skewY(0)
-            scaleX(1) scaleY(1);
-        }
-      }
-    }
-  }
-
-  @media (min-width: 640px) {
-    .docs {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-}
-</style>
