@@ -1,5 +1,5 @@
 import {definePlugin} from "@halo-dev/console-shared";
-import HomeView from "./views/HomeView.vue";
+import HomeView from "./views/BackupSetting.vue";
 import {IconPlug} from "@halo-dev/components";
 import type {BackupTab} from "@halo-dev/console-shared/dist/states/backup";
 import {markRaw} from "vue";
