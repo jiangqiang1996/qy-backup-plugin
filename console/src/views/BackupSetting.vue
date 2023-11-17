@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 // core libs
-import {ref} from "vue";
+import {onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 // components
 import {VButton} from "@halo-dev/components";
@@ -25,6 +25,7 @@ const formSchema = ref(
             name: 'period',
             label: '执行周期',
             help: '定时任务的执行周期',
+            number: "integer",
             validation: 'required|number|min:1',
             value: 1,
         },
@@ -49,6 +50,7 @@ const formSchema = ref(
             name: 'effectiveDuration',
             label: '有效时长',
             help: '备份文件的有效时长',
+            number: "integer",
             value: 1,
             validation: 'required|number|min:1',
         },
@@ -72,14 +74,20 @@ const formSchema = ref(
     ]
 )
 const mutate = async (data: any) => {
-    let promise = await service.create(Constants.BackupSettingGvk, {
-        ...data,
-        metadata: {
-            name: "backupSetting"
-        }
-    });
-    console.log(promise)
+    saving.value = true;
+    try {
+        const response = await service.saveOrUpdate(Constants.BackupSettingGvk, "backupSetting", {...data})
+    } finally {
+        saving.value = false;
+    }
 }
+onMounted(async () => {
+    let response = await service.list(Constants.BackupSettingGvk, {fieldSelector: "name=backupSetting"});
+    let items = response.data.items;
+    if (items?.length) {
+        data.value = items[0]
+    }
+});
 </script>
 <template>
     <Transition mode="out-in" name="fade">

@@ -1,6 +1,4 @@
-import type {GVK} from "@/utils/request";
-
-const Constants: { [key: string]: GVK } = {
+const Constants = {
     BackupSettingGvk: {
         group: "www.jiangqiang.top",
         version: "v1",
