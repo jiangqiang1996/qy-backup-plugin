@@ -152,6 +152,7 @@ const service = {
             params: query
         });
     },
+    axiosInstance
 }
 
 axiosInstance.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
