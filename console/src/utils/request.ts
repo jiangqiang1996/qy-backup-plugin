@@ -125,10 +125,6 @@ const service = {
             return Promise.reject("参数无效")
         }
         data.metadata.name = name;
-        if (!data.metadata.version) {
-            console.error(data)
-            return Promise.reject("version无效")
-        }
         return axiosInstance.put<any, AxiosResponse<T>, any>(`/apis/${gvk.group}/${gvk.version}/${gvk.plural}/${name}`, data);
     },
     async saveOrUpdate<T extends BaseExtensionResponse>(gvk: GVK, name: string, data: BaseExtensionRequest): Promise<AxiosResponse<T>> {
