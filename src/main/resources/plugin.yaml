@@ -11,10 +11,10 @@ spec:
     website: https://www.jiangqiang.top
   logo: https://halo.run/logo
   # 'homepage' usually links to the GitHub repository of the plugin
-  homepage: https://www.jiangqiang.top
+  homepage: https://github.com/jiangqiang1996/qy-backup-plugin.git
   # 'displayName' explains what the plugin does in only a few words
   displayName: "备份增强插件"
   description: "定时自动备份"
   license:
     - name: "GPL-3.0"
-      url: "https://gitee.com/jiangqiang1996/backup-plugin/blob/main/LICENSE"
+      url: "https://github.com/jiangqiang1996/qy-backup-plugin/blob/main/LICENSE"
