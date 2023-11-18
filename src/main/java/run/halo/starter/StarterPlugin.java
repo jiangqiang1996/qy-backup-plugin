@@ -76,7 +76,7 @@ public class StarterPlugin extends BasePlugin {
                     LocalDateTimeUtil.offset(LocalDateTime.now(), backupSetting.getEffectiveDuration(), backupSetting.getEffectiveDurationUnit())));
             backup.setSpec(spec);
             reactiveExtensionClient.create(backup).subscribe();
-        }, 0, backupSetting.getPeriod(), backupSetting.getTimeUnit(), true);
+        }, backupSetting.getPeriod(), backupSetting.getPeriod(), backupSetting.getTimeUnit(), true);
     }
 
     @Override
